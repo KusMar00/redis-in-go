@@ -22,6 +22,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HGETALL": hgetall,
 	"HDEL": hdel,
 	"HEXISTS": hexists,
+	"HLEN": hlen,
 }
 
 func ping(args []Value) Value {
@@ -79,7 +80,7 @@ func del(args []Value) Value {
 	return Value{typ: "string", str: "OK"}
 }
 
-func exists (args []Value) Value {
+func exists(args []Value) Value {
 	if len(args) != 1 {
 		return Value{typ: "error", str: "ERR wrong number of arguments for 'exists' command"}
 	}
@@ -193,4 +194,18 @@ func hexists (args []Value) Value {
 	}
 
 	return Value{typ: "integer", num: 1}
+}
+
+func hlen(args []Value) Value {
+	if len(args) != 1 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'hlen' command"}
+	}
+
+	hash := args[0].bulk
+
+	HSETsMu.RLock()
+	length := len(HSETs[hash])
+	HSETsMu.RUnlock()
+
+	return Value{typ: "integer", num: length}
 }
