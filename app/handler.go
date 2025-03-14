@@ -15,9 +15,13 @@ var Handlers = map[string]func([]Value) Value{
 	"PING": ping,
 	"SET": set,
 	"GET": get,
+	"DEL": del,
+	"EXISTS": exists,
 	"HSET": hset,
 	"HGET": hget,
 	"HGETALL": hgetall,
+	"HDEL": hdel,
+	"HEXISTS": hexists,
 }
 
 func ping(args []Value) Value {
@@ -59,6 +63,38 @@ func get(args []Value) Value {
 	}
 
 	return Value{typ: "bulk", bulk: value}
+}
+
+func del(args []Value) Value {
+	if len(args) != 1 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'del' command"}
+	}
+
+	key := args[0].bulk
+
+	SETsMu.Lock()
+	delete(SETs, key)
+	SETsMu.Unlock()
+
+	return Value{typ: "string", str: "OK"}
+}
+
+func exists (args []Value) Value {
+	if len(args) != 1 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'exists' command"}
+	}
+
+	key := args[0].bulk
+
+	SETsMu.RLock()
+	_, ok := SETs[key]
+	SETsMu.RUnlock()
+
+	if !ok {
+		return Value{typ: "integer", num: 0}
+	}
+
+	return Value{typ: "integer", num: 1}
 }
 
 func hset(args []Value) Value {
@@ -123,4 +159,38 @@ func hgetall(args []Value) Value {
 	}
 
 	return Value{typ: "array", array: values}
+}
+
+func hdel(args []Value) Value {
+	if len(args) != 2 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'hdel' command"}
+	}
+
+	hash := args[0].bulk
+	key := args[1].bulk
+
+	HSETsMu.Lock()
+	delete(HSETs[hash], key)
+	HSETsMu.Unlock()
+
+	return Value{typ: "string", str: "OK"}
+}
+
+func hexists (args []Value) Value {
+	if len(args) != 2 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'hexists' command"}
+	}
+
+	hash := args[0].bulk
+	key := args[1].bulk
+
+	HSETsMu.RLock()
+	_, ok := HSETs[hash][key]
+	HSETsMu.RUnlock()
+
+	if !ok {
+		return Value{typ: "integer", num: 0}
+	}
+
+	return Value{typ: "integer", num: 1}
 }
